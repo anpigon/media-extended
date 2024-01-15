@@ -4,7 +4,6 @@ import { around } from "monkey-around";
 import MediaExtended from "mx-main";
 import {
   App,
-  EditorPosition,
   FileView,
   MarkdownView,
   Menu,
@@ -13,6 +12,7 @@ import {
   SplitDirection,
   TFile,
   ViewStateResult,
+  Workspace,
   WorkspaceLeaf,
 } from "obsidian";
 
@@ -35,6 +35,7 @@ import {
   Plyr_TF,
 } from "./modules/plyr-setup";
 import { TimeSpan } from "./modules/temporal-frag";
+import { TRANSCRIPT_TYPE_VIEW } from "./yt-transcript/transcript-view";
 
 export const MEDIA_VIEW_TYPE = "media-view";
 
@@ -54,7 +55,6 @@ export class MediaView extends FileView {
   emptyEl: HTMLDivElement;
   playerEl: HTMLDivElement;
   private controls: Map<string, HTMLElement>;
-
   async onLoadFile(file: TFile): Promise<void> {
     const info = await getMediaInfo(file, "");
     if (info) {
@@ -113,11 +113,13 @@ export class MediaView extends FileView {
       this.load();
       // @ts-ignore
       if (player.isYouTube) {
+        // open YouTube autoplay by default
+        // but won't autoplay at the time reload obsidian
         const handler = (e: Plyr.PlyrStateChangeEvent) => {
-          // @ts-ignore
-          // console.log(e.detail.code, player?.config?.title);
-          if (e.detail.code === 1) {
-            this.load();
+          console.log("event: ", e);
+          if (e.detail.code === -1) {
+            console.log("play: ", e);
+            this.player?.play();
             player.off("statechange", handler);
           }
         };
@@ -211,7 +213,9 @@ export class MediaView extends FileView {
     menu.addItem((item) =>
       item
         .setTitle("Speed Control")
-        .onClick((evt) => getSpeedMenu(this.app).showAtMouseEvent(evt)),
+        .onClick((evt) =>
+          getSpeedMenu(this.app).showAtMouseEvent(<MouseEvent>evt),
+        ),
     );
     menu.addSeparator();
     super.onMoreOptionsMenu(menu);
@@ -227,27 +231,17 @@ export class MediaView extends FileView {
     if (this.app.isMobile)
       this.addAction("cross", "Close", () => this.leaf.detach());
     this.controls = this.getControls();
-
-    // prevent view from switching to other type when MarkdownView in group change mode
-    const unload = around(leaf, {
-      // @ts-ignore
-      // eslint-disable-next-line prefer-arrow/prefer-arrow-functions
-      open(next) {
-        return function (this: WorkspaceLeaf, view) {
-          if (this.group) {
-            if (view instanceof MediaView) return next.call(this, view);
-          } else return next.call(this, view);
-        };
-      },
-    });
-    this.register(unload);
     this.setInfo(info ?? null);
   }
   private getControls() {
     return new Map([
       [
         "get-timestamp",
-        this.addAction("star", "Get current Timestamp", this.addToDoc),
+        this.addAction("clock", "Get current Timestamp", () => {
+          this.addTimeStampToMDView(
+            this.plugin.currentEditorLeaf?.view as MarkdownView,
+          );
+        }),
       ],
       [
         "pip",
@@ -263,8 +257,53 @@ export class MediaView extends FileView {
           new PromptModal(this.plugin, this).open(),
         ),
       ],
+      [
+        "show-transcript",
+        this.addAction("scroll-text", "Toggle Transcripts", () => {
+          this.toggleTranscriptView();
+        }),
+      ],
     ]);
   }
+
+  private getUrlFromMediaInfo() {
+    const src = this.info?.src;
+    if (typeof src === "string") {
+      return src;
+    } else if (src instanceof URL) {
+      return src.href;
+    } else {
+      return "";
+    }
+  }
+  async openTranscriptView() {
+    const url = this.getUrlFromMediaInfo();
+    const newLeaf = this.app.workspace.createLeafBySplit(
+      this.leaf,
+      getDirection(this.app.workspace),
+    );
+    await newLeaf.setViewState({
+      type: TRANSCRIPT_TYPE_VIEW,
+    });
+    this.app.workspace.revealLeaf(newLeaf);
+    newLeaf.setEphemeralState({ url });
+  }
+
+  private async toggleTranscriptView() {
+    const { workspace } = this.app;
+    let leaf: WorkspaceLeaf | null = null;
+    const leaves = workspace.getLeavesOfType(TRANSCRIPT_TYPE_VIEW);
+    if (leaves.length > 0) {
+      // A leaf with our view already exists, close it
+      leaf = leaves[0];
+      leaf.detach();
+    } else {
+      // Our view could not be found in the workspace, create a new leaf
+      // in the right sidebar and open it
+      this.openTranscriptView();
+    }
+  }
+
   private setEmpty(): HTMLDivElement {
     const { contentEl } = this;
     const mainEl = contentEl.createDiv({ cls: "empty-state" });
@@ -386,24 +425,13 @@ export class MediaView extends FileView {
     this.player.pip = !this.player.pip;
   };
 
-  private addToDoc = () => {
-    if (this.leaf.group) {
-      const group = this.app.workspace.getGroupLeaves(this.leaf.group);
-      for (const leaf of group) {
-        if (leaf.view instanceof MarkdownView) {
-          this.addTimeStampToMDView(leaf.view);
-          return;
-        }
-      }
-    } else {
-      console.error("no group for leaf: %o", this.leaf);
-    }
-  };
   addTimeStampToMDView = (view: MarkdownView) => {
     const timestamp = this.getTimeStamp();
     if (!timestamp) return;
     const { timestampTemplate: template } = this.plugin.settings;
-    insertToCursor(template.replace(/{{TIMESTAMP}}/g, timestamp), view);
+    let content = template.replace(/{{TIMESTAMP}}/g, timestamp);
+    content = content.replace(/{{SUBTITLE}}/g, "");
+    insertToCursor(content, view);
   };
   getTimeStamp(sourcePath?: string): string | null {
     if (!this.info) return null;
@@ -474,6 +502,7 @@ export class PromptModal extends Modal {
       { type: "text" },
       (el) => (el.style.width = "100%"),
     );
+    const activeLeaf = this.app.workspace.activeLeaf;
     modalEl.createDiv({ cls: "modal-button-container" }, (div) => {
       div.createEl("button", { cls: "mod-cta", text: "Open" }, (el) =>
         el.onClickEvent(async () => {
@@ -485,8 +514,8 @@ export class PromptModal extends Modal {
                 this.play();
               });
               this.close();
-            } else if (this.app.workspace.activeLeaf) {
-              openNewView(result, this.app.workspace.activeLeaf, this.plugin);
+            } else if (activeLeaf) {
+              openNewView(result, activeLeaf, this.plugin);
               this.close();
             } else new Notice("No activeLeaf found");
           } else new Notice("Link not supported");
@@ -516,30 +545,32 @@ export const openNewView = (
     );
     return;
   }
-  const getDirection = (): SplitDirection => {
-    const vw = workspace.rootSplit.containerEl?.clientWidth;
-    const vh = workspace.rootSplit.containerEl?.clientHeight;
-    if (vh && vw) {
-      if (vh < vw) return "vertical";
-      else return "horizontal";
-    } else {
-      console.error(
-        "no containerEl for rootSplit, fallback to horizontal",
-        workspace.rootSplit,
-      );
-      return "horizontal";
-    }
-  };
 
-  const newLeaf = workspace.createLeafBySplit(leaf, getDirection());
-  leaf.setGroupMember(newLeaf);
+  const newLeaf = workspace.createLeafBySplit(leaf, getDirection(workspace));
+
+  plugin.currentMediaPlayLeaf = newLeaf;
   const view = new MediaView(newLeaf, plugin, info);
   newLeaf.open(view);
 
   if (view.core) {
     const { player } = view.core;
-    player.once("ready", function () {
+    player.once("ready", function (event) {
       this.play();
     });
   }
 };
+
+function getDirection(workspace: Workspace): SplitDirection {
+  const vw = workspace.rootSplit.containerEl?.clientWidth;
+  const vh = workspace.rootSplit.containerEl?.clientHeight;
+  if (vh && vw) {
+    if (vh < vw) return "vertical";
+    else return "horizontal";
+  } else {
+    console.error(
+      "no containerEl for rootSplit, fallback to horizontal",
+      workspace.rootSplit,
+    );
+    return "horizontal";
+  }
+}

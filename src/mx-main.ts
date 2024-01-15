@@ -2,9 +2,10 @@ import "plyr/dist/plyr.css";
 import "./style/main.less";
 import "./style/ytb.less";
 import "./style/caption-fix.less";
+import "./style/yt-transcript.less";
 
 import assertNever from "assert-never";
-import { Plugin } from "obsidian";
+import { MarkdownView, Plugin, WorkspaceLeaf } from "obsidian";
 
 import { getEmbedProcessor } from "./embeds";
 import { getCMLinkHandler, getLinkProcessor } from "./links";
@@ -18,12 +19,20 @@ import {
   MxSettings,
   SizeSettings,
 } from "./settings";
+import {
+  TRANSCRIPT_TYPE_VIEW,
+  TranscriptView,
+} from "./yt-transcript/transcript-view";
 
 const linkSelector = "span.cm-url, span.cm-hmd-internal-link";
 export default class MediaExtended extends Plugin {
   settings: MxSettings = DEFAULT_SETTINGS;
 
   recStartTime: number | null = null;
+
+  currentEditorLeaf?: WorkspaceLeaf;
+
+  currentMediaPlayLeaf?: WorkspaceLeaf;
 
   private cmLinkHandler = getCMLinkHandler(this);
 
@@ -40,6 +49,7 @@ export default class MediaExtended extends Plugin {
       "--plyr-min-width",
       value ?? this.sizeSettings.embedMinWidth,
     );
+
   get sizeSettings() {
     return {
       embedMaxHeight: this.app.isMobile
@@ -53,6 +63,7 @@ export default class MediaExtended extends Plugin {
         : this.settings.plyrControls,
     };
   }
+
   setSizeSettings = async (to: Partial<SizeSettings>): Promise<void> => {
     let save: Partial<MxSettings>;
     if (this.app.isMobile) {
@@ -78,7 +89,26 @@ export default class MediaExtended extends Plugin {
   async onload(): Promise<void> {
     console.log("loading media-extended");
 
+    this.currentMediaPlayLeaf =
+      this.app.workspace.getLeavesOfType(MEDIA_VIEW_TYPE)[0];
+
+    this.app.workspace
+      .getLeavesOfType(TRANSCRIPT_TYPE_VIEW)
+      .forEach((l) => l.detach());
+
+    this.currentEditorLeaf = this.app.workspace.getLeavesOfType("markdown")[0];
+
     await this.loadSettings();
+
+    // open a media player won't active it, so can not modify from here
+    this.registerEvent(
+      this.app.workspace.on("active-leaf-change", (leaf) => {
+        if (leaf && "markdown" === leaf.view.getViewType()) {
+          console.log("markdown leaf change: ", leaf.view.getViewType());
+          this.currentEditorLeaf = leaf;
+        }
+      }),
+    );
 
     setupRec.call(this);
 
@@ -116,25 +146,13 @@ export default class MediaExtended extends Plugin {
     this.addCommand({
       id: "get-timestamp",
       name: "Get timestamp from player",
-      editorCheckCallback: (checking, _editor, view) => {
-        const getMediaView = (group: string) =>
-          this.app.workspace
-            .getGroupLeaves(group)
-            .find((leaf) => (leaf.view as MediaView).getTimeStamp !== undefined)
-            ?.view as MediaView | undefined;
-        const group: null | string = view.leaf.group;
-        if (checking) {
-          if (group) {
-            const mediaView = getMediaView(group);
-            if (mediaView && (mediaView as MediaView).getTimeStamp())
-              return true;
-          }
-          return false;
-        } else if (group) {
-          getMediaView(group)?.addTimeStampToMDView(view);
-        }
+      callback: () => {
+        (this.currentMediaPlayLeaf?.view as MediaView).addTimeStampToMDView(
+          this.currentEditorLeaf?.view as MarkdownView,
+        );
       },
     });
+
     this.addCommand({
       id: "open-media-link",
       name: "Open Media from Link",
@@ -148,6 +166,12 @@ export default class MediaExtended extends Plugin {
     const exts = getExts();
     this.app.viewRegistry.unregisterExtensions(exts);
     this.registerView(MEDIA_VIEW_TYPE, (leaf) => new MediaView(leaf, this));
+
+    this.registerView(
+      TRANSCRIPT_TYPE_VIEW,
+      (leaf) => new TranscriptView(leaf, this),
+    );
+
     this.app.viewRegistry.registerExtensions(exts, MEDIA_VIEW_TYPE);
   }
 
@@ -166,6 +190,7 @@ export default class MediaExtended extends Plugin {
           assertNever(type);
       }
     }
+    this.app.workspace.detachLeavesOfType(TRANSCRIPT_TYPE_VIEW);
   }
 
   onunload() {

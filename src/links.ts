@@ -38,23 +38,11 @@ export const getOpenLink = (
       console.error("no active leaf");
       return;
     }
-    const groupId: string | null = workspace.activeLeaf.group;
-    let playerLeaf: WorkspaceLeaf | null = null;
-    if (groupId) {
-      const allPlayerLeavesInGroup = workspace
-        .getLeavesOfType(MEDIA_VIEW_TYPE)
-        .filter((leaf) => {
-          return leaf.group === groupId;
-        });
-      if (allPlayerLeavesInGroup.length > 0)
-        playerLeaf = allPlayerLeavesInGroup[0];
-      for (let i = 1; i < allPlayerLeavesInGroup.length; i++) {
-        allPlayerLeavesInGroup[i].detach();
-      }
-    }
 
-    if (playerLeaf) {
-      const view = playerLeaf.view as MediaView;
+    // if view type is 'empty', then the player window has closed
+    console.log("view type: ", plugin.currentMediaPlayLeaf?.view.getViewType());
+    if ("media-view" === plugin.currentMediaPlayLeaf?.view.getViewType()) {
+      const view = plugin.currentMediaPlayLeaf.view as MediaView;
       const isInfoEqual = view.isEqual(info);
       view.setInfo(info).then(() => {
         if (!view.core) return;

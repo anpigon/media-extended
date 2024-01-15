@@ -13,6 +13,7 @@ const renamePlugin = {
   setup: (build) => {
     build.onEnd(() => {
       const { outfile } = build.initialOptions;
+      console.log("build: ", outfile);
       const outcss = outfile.replace(/\.js$/, ".css");
       const fixcss = outfile.replace(/main\.js$/, "styles.css");
       if (fs.existsSync(outcss)) {
@@ -26,7 +27,7 @@ const copyManifest = {
   name: "copy-manifest",
   setup: (build) => {
     build.onEnd(() => {
-      fs.copyFileSync("manifest.json", "build/manifest.json");
+      fs.copyFileSync("manifest.json", "manifest.json");
     });
   },
 };
@@ -49,7 +50,7 @@ const isProd = process.env.BUILD === "production";
       define: {
         "process.env.NODE_ENV": JSON.stringify(process.env.BUILD),
       },
-      outfile: "build/main.js",
+      outfile: "main.js",
       plugins: [
         lessLoader({
           javascriptEnabled: true,

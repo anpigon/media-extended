@@ -24,6 +24,11 @@ export interface MxSettings {
   timestampTemplate: string;
   timestampOffset: number;
   hideEmbedControls: boolean;
+  // settings used to fetch transcript
+  lang: string;
+  country: string;
+  // when there is no time duration, use this to set how many lines per duration
+  timestampLines: number;
 }
 
 export const DEFAULT_SETTINGS: MxSettings = {
@@ -71,6 +76,9 @@ export const DEFAULT_SETTINGS: MxSettings = {
   timestampTemplate: "\n{{TIMESTAMP}}\n",
   timestampOffset: 0,
   hideEmbedControls: false,
+  lang: "en",
+  country: "EN",
+  timestampLines: 1,
 };
 
 export type SizeSettings = {
@@ -285,7 +293,9 @@ export class MESettingTab extends PluginSettingTab {
         createFragment((descEl) => {
           descEl.appendText("The template used to insert timestamps.");
           descEl.createEl("br");
-          descEl.appendText("Supported placeholders: {{TIMESTAMP}}");
+          descEl.appendText(
+            "Supported placeholders: {{TIMESTAMP}}, {{SUBTITLE}}",
+          );
         }),
       )
       .addTextArea((text) => {
@@ -359,6 +369,43 @@ export class MESettingTab extends PluginSettingTab {
         (value) => document.body.toggleClass(hideYtbRecommClass, value),
       );
     }
+    new Setting(containerEl)
+      .setName("Transcripts Interval")
+      .setDesc("How many lines of transcripts in a druation.")
+      .addText((text) => {
+        text
+          .setValue(this.plugin.settings.timestampLines.toString())
+          .onChange(async (value: string) => {
+            try {
+              this.plugin.settings.timestampLines = parseInt(value);
+              this.plugin.saveSettings();
+            } catch (e) {
+              console.log("Invalid input, must be bumber");
+            }
+          });
+      });
+    new Setting(containerEl)
+      .setName("Country")
+      .setDesc("Preferred transcript country code")
+      .addText((text) => {
+        text
+          .setValue(this.plugin.settings.country)
+          .onChange(async (value: string) => {
+            this.plugin.settings.country = value;
+            this.plugin.saveSettings();
+          });
+      });
+    new Setting(containerEl)
+      .setName("Language")
+      .setDesc("Preferred transcript language.")
+      .addText((text) => {
+        text
+          .setValue(this.plugin.settings.lang)
+          .onChange(async (value: string) => {
+            this.plugin.settings.lang = value;
+            this.plugin.saveSettings();
+          });
+      });
   }
   bili(): void {
     let { containerEl } = this;
