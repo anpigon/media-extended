@@ -12,7 +12,7 @@ My goal is to enchance the experience of taking notes from YouTube vides, I've a
 
 This changes are primarily based on my experiance using YouTube, and may not be suitable for everyone.
 
-1. Completely unbind the video player from note editor, allowing you to open multiple video player windows simultaneously and insert video timestamps from different videos into a single note. **Note these timestamps looks the same but leed to different videos**. In the original repository, one video player is bound to one editor using a feature call `group` in Obsidian, resulting in the creation of  a new editor view each time you swtich between live view mode and reading view mode.
+1. Completely unbind the video player from note editor, allowing you to open multiple video player windows simultaneously and insert video timestamps from different videos into a single note. **Note these timestamps look the same but leed to different videos**. In the original repository, one video player is bound to one editor using a feature call `group` in Obsidian, resulting in the creation of  a new editor view each time you swtich between live view mode and reading view mode.
 2. Add support for YouTube transcripts, this feature is from another plugin [obsidian-yt-transcript](https://github.com/lstrzepek/obsidian-yt-transcript). Other types of video transcripts are not supported.
 3. Instead of using dragging, I enable text selection. This could be more useful in times when you just want to choose portion of the text. Moreover, enabling text selection also allows you to perform additional operations, such as looking up selection in the built-in dictionary on MacOS.
 4. Navigate through the video by clicking on timestamps in transcript panel.
