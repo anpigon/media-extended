@@ -32,6 +32,7 @@ Note : Uninstalling the old `Media-Extend` plugin first because they are essenti
 ## Workaround
 
 The original repository uses `MarkdownPostProcessor` to implement the feature of navigating videos through timestamps, so timestamp link could only lead to video in the reading view, otherwise it will  result in opening the default browser. There is workaround, put the timestamp link inside a component that will be rendered in live view, like callout.
+
       <img width="713" alt="image" src="https://github.com/bfcs/media-extended/assets/52602045/a62a3c5e-0de5-4631-ac19-3078462f12f0">
 
 ## Future
