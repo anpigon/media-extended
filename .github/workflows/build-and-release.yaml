@@ -30,7 +30,7 @@ jobs:
 
     - name: Create release package
       run: |
-        zip -r ${{ steps.timestamp.outputs.timestamp }}.zip main.js style.css manifest.json
+        zip -r ${{ steps.timestamp.outputs.timestamp }}.zip main.js styles.css manifest.json
 
     - name: Upload Release Asset
       uses: softprops/action-gh-release@v1
