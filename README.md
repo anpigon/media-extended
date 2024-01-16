@@ -22,6 +22,8 @@ This changes are primarily based on my experiance using YouTube, and may not be 
 8. Play the video in a loop within the time range of the chosen transcript. 
 9. Copy a single transcript or all transcripts
 
+**Note: Before performing the insertion operation, ensure your mouse cursor is in the correct position.**
+
 ## How to use
 
 Download the zip file from the release page and place the uncompressed folder in the Obsidian plugin folder.   
