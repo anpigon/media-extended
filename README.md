@@ -2,7 +2,7 @@
 
 This is a fork from [Media Extended](https://github.com/aidenlx/media-extended). 
 
-My goal is to enchance the experience of taking notes from YouTube vides, I've attempted many plugins to achieve the functionality of inserting timestamp link and navigating video through transcripts... Then I've found `Media-Extend` and `obsidian-yt-transcript`, but they can not work together, both of the two plugins have remain unmaintained for a long time, so I decide fork the `Media-Extend` and integrate `obsidian-yt-transcript`.
+My goal is to enchance the experience of taking notes from YouTube videos, I've attempted many plugins to achieve the functionality of inserting timestamp link and navigating video through transcripts... Then I've found `Media-Extend` and `obsidian-yt-transcript`, but they can not work together, both of the two plugins have remain unmaintained for a long time, so I decide fork the `Media-Extend` and integrate `obsidian-yt-transcript`.
 
 ## Demo
 <img width="1280" alt="Snipaste_2024-01-16_19-54-17" src="https://github.com/bfcs/media-extended/assets/52602045/359b007d-abe9-4e52-8fcb-e22f14851178">
