@@ -73,7 +73,7 @@ export const DEFAULT_SETTINGS: MxSettings = {
     pip: false, // Picture-in-picture (currently Safari only)
     fullscreen: true, // Toggle fullscreen
   },
-  timestampTemplate: "\n{{TIMESTAMP}}\n",
+  timestampTemplate: "\n" + ">[!abstract]-  {{TIMESTAMP}} \n" + ">{{SUBTITLE}}",
   timestampOffset: 0,
   hideEmbedControls: false,
   lang: "en",

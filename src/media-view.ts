@@ -1,6 +1,5 @@
 import assertNever from "assert-never";
 import TimeFormat from "hh-mm-ss";
-import { around } from "monkey-around";
 import MediaExtended from "mx-main";
 import {
   App,
@@ -16,6 +15,7 @@ import {
   WorkspaceLeaf,
 } from "obsidian";
 
+import { isYouTubeUrl } from "./links";
 import { insertToCursor, mainpart } from "./misc";
 import {
   getLink,
@@ -35,7 +35,11 @@ import {
   Plyr_TF,
 } from "./modules/plyr-setup";
 import { TimeSpan } from "./modules/temporal-frag";
-import { TRANSCRIPT_TYPE_VIEW } from "./yt-transcript/transcript-view";
+import { YoutubeTranscript } from "./yt-transcript/fetch-transcript";
+import {
+  TRANSCRIPT_TYPE_VIEW,
+  TranscriptView,
+} from "./yt-transcript/transcript-view";
 
 export const MEDIA_VIEW_TYPE = "media-view";
 
@@ -55,6 +59,9 @@ export class MediaView extends FileView {
   emptyEl: HTMLDivElement;
   playerEl: HTMLDivElement;
   private controls: Map<string, HTMLElement>;
+
+  transcriptsMap: Map<string, any> = new Map();
+
   async onLoadFile(file: TFile): Promise<void> {
     const info = await getMediaInfo(file, "");
     if (info) {
@@ -116,9 +123,7 @@ export class MediaView extends FileView {
         // open YouTube autoplay by default
         // but won't autoplay at the time reload obsidian
         const handler = (e: Plyr.PlyrStateChangeEvent) => {
-          console.log("event: ", e);
           if (e.detail.code === -1) {
-            console.log("play: ", e);
             this.player?.play();
             player.off("statechange", handler);
           }
@@ -266,18 +271,23 @@ export class MediaView extends FileView {
     ]);
   }
 
-  private getUrlFromMediaInfo() {
-    const src = this.info?.src;
-    if (typeof src === "string") {
-      return src;
-    } else if (src instanceof URL) {
-      return src.href;
-    } else {
-      return "";
+  async openYouTubeTranscriptView(url: string) {
+    let transcriptsObj = this.transcriptsMap.get(url);
+    if (transcriptsObj === undefined) {
+      try {
+        const { lang, country, timestampLines } = this.plugin.settings;
+        transcriptsObj = await YoutubeTranscript.fetchTranscript(url, {
+          lang,
+          country,
+        });
+      } catch (e) {
+        new Notice(`${e}`);
+        return;
+      }
     }
-  }
-  async openTranscriptView() {
-    const url = this.getUrlFromMediaInfo();
+
+    this.transcriptsMap.set(url, transcriptsObj);
+
     const newLeaf = this.app.workspace.createLeafBySplit(
       this.leaf,
       getDirection(this.app.workspace),
@@ -286,21 +296,43 @@ export class MediaView extends FileView {
       type: TRANSCRIPT_TYPE_VIEW,
     });
     this.app.workspace.revealLeaf(newLeaf);
-    newLeaf.setEphemeralState({ url });
+    newLeaf.setEphemeralState({
+      info: this.info,
+      url: url,
+      title: transcriptsObj.title,
+      lines: transcriptsObj.lines,
+      duration: this.player?.duration,
+    });
   }
 
   private async toggleTranscriptView() {
+    const url = getLink(this.info).href.split("#")[0];
+    // Now only support YouTube Transcripts
+    if (!isYouTubeUrl(url)) {
+      new Notice("Only support YouTube now");
+      return;
+    }
+
     const { workspace } = this.app;
     let leaf: WorkspaceLeaf | null = null;
     const leaves = workspace.getLeavesOfType(TRANSCRIPT_TYPE_VIEW);
-    if (leaves.length > 0) {
-      // A leaf with our view already exists, close it
-      leaf = leaves[0];
-      leaf.detach();
-    } else {
-      // Our view could not be found in the workspace, create a new leaf
-      // in the right sidebar and open it
-      this.openTranscriptView();
+
+    let leafEsists = false;
+    //let view: TranscriptView;
+
+    for (let leaf of leaves) {
+      const view = leaf.view as TranscriptView;
+      if (
+        TRANSCRIPT_TYPE_VIEW === view.getViewType() &&
+        this.isEqual(view.info)
+      ) {
+        leafEsists = true;
+        leaf.detach();
+      }
+    }
+
+    if (!leafEsists) {
+      await this.openYouTubeTranscriptView(url);
     }
   }
 
@@ -502,7 +534,7 @@ export class PromptModal extends Modal {
       { type: "text" },
       (el) => (el.style.width = "100%"),
     );
-    const activeLeaf = this.app.workspace.activeLeaf;
+
     modalEl.createDiv({ cls: "modal-button-container" }, (div) => {
       div.createEl("button", { cls: "mod-cta", text: "Open" }, (el) =>
         el.onClickEvent(async () => {
@@ -514,11 +546,13 @@ export class PromptModal extends Modal {
                 this.play();
               });
               this.close();
-            } else if (activeLeaf) {
-              openNewView(result, activeLeaf, this.plugin);
+            } else {
+              openNewView(result, this.plugin);
               this.close();
-            } else new Notice("No activeLeaf found");
-          } else new Notice("Link not supported");
+            }
+          } else {
+            new Notice("Link not supported");
+          }
         }),
       );
       div.createEl("button", { text: "Cancel" }, (el) =>
@@ -533,22 +567,21 @@ export class PromptModal extends Modal {
   }
 }
 
-export const openNewView = (
-  info: mediaInfo,
-  leaf: WorkspaceLeaf,
-  plugin: MediaExtended,
-) => {
+export const openNewView = (info: mediaInfo, plugin: MediaExtended) => {
   const { workspace } = plugin.app;
-  if (!(leaf.view instanceof MarkdownView)) {
-    new Notice(
-      "No MarkdownView active, open new markdown file or click on opened md file",
-    );
+
+  if (!plugin.currentEditorLeaf) {
+    new Notice("No active editor, first open a note.");
     return;
   }
 
-  const newLeaf = workspace.createLeafBySplit(leaf, getDirection(workspace));
+  const newLeaf = workspace.createLeafBySplit(
+    plugin.currentEditorLeaf,
+    getDirection(workspace),
+  );
 
-  plugin.currentMediaPlayLeaf = newLeaf;
+  newLeaf.setPinned(true);
+
   const view = new MediaView(newLeaf, plugin, info);
   newLeaf.open(view);
 
@@ -560,6 +593,7 @@ export const openNewView = (
   }
 };
 
+// TODO: A more intelligent way to choose the direction
 function getDirection(workspace: Workspace): SplitDirection {
   const vw = workspace.rootSplit.containerEl?.clientWidth;
   const vh = workspace.rootSplit.containerEl?.clientHeight;

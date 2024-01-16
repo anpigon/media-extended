@@ -34,15 +34,24 @@ export const getOpenLink = (
       return;
     e.stopPropagation();
     e.preventDefault();
-    if (!workspace.activeLeaf) {
-      console.error("no active leaf");
-      return;
+
+    const mediaLeafs = workspace.getLeavesOfType(MEDIA_VIEW_TYPE);
+
+    let leafEsists = false;
+    let view: MediaView;
+
+    for (let mediaLeaf of mediaLeafs) {
+      const mediaView = mediaLeaf.view as MediaView;
+      if (
+        MEDIA_VIEW_TYPE === mediaView.getViewType() &&
+        mediaView.isEqual(info)
+      ) {
+        leafEsists = true;
+        view = mediaView;
+      }
     }
 
-    // if view type is 'empty', then the player window has closed
-    console.log("view type: ", plugin.currentMediaPlayLeaf?.view.getViewType());
-    if ("media-view" === plugin.currentMediaPlayLeaf?.view.getViewType()) {
-      const view = plugin.currentMediaPlayLeaf.view as MediaView;
+    if (leafEsists) {
       const isInfoEqual = view.isEqual(info);
       view.setInfo(info).then(() => {
         if (!view.core) return;
@@ -71,8 +80,8 @@ export const getOpenLink = (
             });
         }
       });
-    } else if (workspace.activeLeaf) {
-      openNewView(info, workspace.activeLeaf, plugin);
+    } else {
+      openNewView(info, plugin);
     }
   };
 };
@@ -145,3 +154,11 @@ export const getCMLinkHandler = (plugin: MediaExtended) => {
     }
   };
 };
+
+export function isYouTubeUrl(url: string): boolean {
+  // YouTube 视频链接的正则表达式
+  const youtubeRegex =
+    /^(https?:\/\/)?(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})$/;
+
+  return youtubeRegex.test(url);
+}

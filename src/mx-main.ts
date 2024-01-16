@@ -5,7 +5,7 @@ import "./style/caption-fix.less";
 import "./style/yt-transcript.less";
 
 import assertNever from "assert-never";
-import { MarkdownView, Plugin, WorkspaceLeaf } from "obsidian";
+import { MarkdownView, Notice, Plugin, WorkspaceLeaf } from "obsidian";
 
 import { getEmbedProcessor } from "./embeds";
 import { getCMLinkHandler, getLinkProcessor } from "./links";
@@ -30,9 +30,9 @@ export default class MediaExtended extends Plugin {
 
   recStartTime: number | null = null;
 
-  currentEditorLeaf?: WorkspaceLeaf;
+  currentEditorLeaf = this.app.workspace.getLeavesOfType("markdown")[0];
 
-  currentMediaPlayLeaf?: WorkspaceLeaf;
+  currentMediaPlayerLeaf: WorkspaceLeaf;
 
   private cmLinkHandler = getCMLinkHandler(this);
 
@@ -89,23 +89,16 @@ export default class MediaExtended extends Plugin {
   async onload(): Promise<void> {
     console.log("loading media-extended");
 
-    this.currentMediaPlayLeaf =
-      this.app.workspace.getLeavesOfType(MEDIA_VIEW_TYPE)[0];
-
-    this.app.workspace
-      .getLeavesOfType(TRANSCRIPT_TYPE_VIEW)
-      .forEach((l) => l.detach());
-
-    this.currentEditorLeaf = this.app.workspace.getLeavesOfType("markdown")[0];
-
     await this.loadSettings();
 
-    // open a media player won't active it, so can not modify from here
     this.registerEvent(
       this.app.workspace.on("active-leaf-change", (leaf) => {
-        if (leaf && "markdown" === leaf.view.getViewType()) {
+        if ("markdown" === leaf?.view.getViewType()) {
           console.log("markdown leaf change: ", leaf.view.getViewType());
           this.currentEditorLeaf = leaf;
+        } else if (MEDIA_VIEW_TYPE === leaf?.view.getViewType()) {
+          console.log("media view change: ", leaf?.view.getViewType());
+          this.currentMediaPlayerLeaf = leaf;
         }
       }),
     );
@@ -147,7 +140,19 @@ export default class MediaExtended extends Plugin {
       id: "get-timestamp",
       name: "Get timestamp from player",
       callback: () => {
-        (this.currentMediaPlayLeaf?.view as MediaView).addTimeStampToMDView(
+        if (
+          !(MEDIA_VIEW_TYPE === this.currentMediaPlayerLeaf?.view.getViewType())
+        ) {
+          new Notice("No active media player, click the blank space of media");
+          return;
+        }
+
+        if (!("markdown" === this.currentEditorLeaf?.view.getViewType())) {
+          new Notice("No active editor,open a editor first");
+          return;
+        }
+
+        (this.currentMediaPlayerLeaf?.view as MediaView).addTimeStampToMDView(
           this.currentEditorLeaf?.view as MarkdownView,
         );
       },

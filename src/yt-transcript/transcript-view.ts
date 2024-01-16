@@ -20,7 +20,15 @@ export class TranscriptView extends ItemView {
 
   url: string = "";
 
+  info?: mediaInfo;
+
   hiden = false;
+
+  title = "";
+
+  lines = [];
+
+  duration: number = 0;
 
   constructor(leaf: WorkspaceLeaf, plugin: MediaExtended) {
     super(leaf);
@@ -33,7 +41,7 @@ export class TranscriptView extends ItemView {
     });
 
     this.addAction("view", "Toggle Transcripts View", () => {
-      const transArr = this.dataContainerEl?.getElementsByTagName("p");
+      const transArr = this.dataContainerEl?.getElementsByTagName("span");
       this.hiden = !this.hiden;
       if (transArr && transArr.length > 0) {
         for (let i = 0; i < transArr.length; i++) {
@@ -47,7 +55,6 @@ export class TranscriptView extends ItemView {
   async onOpen() {
     const { contentEl } = this;
     contentEl.empty();
-    contentEl.createEl("h4", { text: "Transcript" });
     // make text selectable
     contentEl.style.userSelect = "text";
   }
@@ -57,11 +64,7 @@ export class TranscriptView extends ItemView {
   /**
    * Adds a text input to the view content
    */
-  private renderSearchInput(
-    url: string,
-    data: TranscriptResponse,
-    timestampMod: number,
-  ) {
+  private renderSearchInput(url: string, timestampLines: number) {
     const searchInputEl = this.contentEl.createEl("input");
     searchInputEl.type = "text";
     searchInputEl.placeholder = "Search...";
@@ -69,7 +72,7 @@ export class TranscriptView extends ItemView {
     searchInputEl.addEventListener("input", (e) => {
       const searchFilter = (e.target as HTMLInputElement).value;
       console.log("search str: ", searchFilter);
-      this.renderTranscriptionBlocks(data, timestampMod, searchFilter);
+      this.renderTranscriptionBlocks(timestampLines, searchFilter);
     });
   }
 
@@ -101,19 +104,17 @@ export class TranscriptView extends ItemView {
   /**
    * Add a transcription blocks to the view content
    * @param url - the url of the video
-   * @param data - the transcript data
    * @param timestampMod - the number of seconds between each timestamp
    * @param searchValue - the value to search for in the transcript
    */
   private async renderTranscriptionBlocks(
-    data: TranscriptResponse,
-    timestampMod: number,
+    timestampLines: number,
     searchValue: string,
   ) {
     this.dataContainerEl?.empty();
     this.dataContainerEl = this.contentEl.createEl("div");
 
-    const transcriptBlocks = getTranscriptBlocks(data.lines, timestampMod);
+    const transcriptBlocks = getTranscriptBlocks(this.lines, timestampLines);
 
     //Filter transcript blocks based on
     this.filteredBlocks = transcriptBlocks.filter((block) =>
@@ -130,9 +131,8 @@ export class TranscriptView extends ItemView {
 
       // # indicates that navigate inside page
       // the original url has # from timestamp in editor, need to be removed
-      const plainUrl = this.url.split("#")[0];
       const currentTimeInSec = quoteTimeOffset / 1000;
-      const href = plainUrl + "#t=" + currentTimeInSec;
+      const href = this.url + "#t=" + currentTimeInSec;
       const currentFormatedTime = formatTimestamp(quoteTimeOffset);
       const linkEl = createEl("a", {
         text: currentFormatedTime,
@@ -143,11 +143,11 @@ export class TranscriptView extends ItemView {
       blockContainerEl.appendChild(actionEl);
 
       linkEl.style.marginBottom = "5px";
-      const info = await getMediaInfo(href);
+      const transInfo = await getMediaInfo(href);
       this.plugin.registerDomEvent(
         linkEl,
         "click",
-        getOpenLink(<mediaInfo>info, this.plugin),
+        getOpenLink(<mediaInfo>transInfo, this.plugin),
       );
 
       actionEl.appendChild(linkEl);
@@ -164,10 +164,19 @@ export class TranscriptView extends ItemView {
       });
       actionEl.appendChild(insertEl);
 
-      const nextTimeOffset = this.filteredBlocks[i + 1].quoteTimeOffset;
-      const nextTimeInSec = nextTimeOffset / 1000;
-      const nextFormatedTime = formatTimestamp(nextTimeOffset);
-      const loopTimestamp = `[${currentFormatedTime} - ${nextFormatedTime}](${plainUrl}#loop&t=${currentTimeInSec},${nextTimeInSec})`;
+      let nextTimeInSec = 0;
+      let nextFormatedTime = "";
+      if (i === this.filteredBlocks.length - 1) {
+        // for the last subtitle, next is the end
+        nextTimeInSec = this.duration;
+        nextFormatedTime = formatTimestamp(nextTimeInSec * 1000);
+      } else {
+        const nextTimeOffset = this.filteredBlocks[i + 1].quoteTimeOffset;
+        nextTimeInSec = nextTimeOffset / 1000;
+        nextFormatedTime = formatTimestamp(nextTimeOffset);
+      }
+
+      const loopTimestamp = `[${currentFormatedTime} - ${nextFormatedTime}](${this.url}#loop&t=${currentTimeInSec},${nextTimeInSec})`;
       const insertLoopEl = createEl("a");
       insertLoopEl.innerHTML =
         '<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-badge-plus"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><line x1="12" x2="12" y1="8" y2="16"/><line x1="8" x2="16" y1="12" y2="12"/></svg>';
@@ -187,7 +196,7 @@ export class TranscriptView extends ItemView {
 
       const loopSVGEl = loopEl.getElementsByTagName("svg")[0];
       loopSVGEl.style.marginBottom = "-2px";
-      const loopUrl = `${plainUrl}#loop&t=${currentTimeInSec},${nextTimeInSec}`;
+      const loopUrl = `${this.url}#loop&t=${currentTimeInSec},${nextTimeInSec}`;
       const loopInfo = await getMediaInfo(loopUrl);
       this.plugin.registerDomEvent(
         loopEl,
@@ -219,7 +228,7 @@ export class TranscriptView extends ItemView {
       });
       actionEl.appendChild(copyEl);
 
-      const scriptEl = blockContainerEl.createEl("p", {
+      const scriptEl = blockContainerEl.createEl("span", {
         text: quote,
       });
 
@@ -270,40 +279,17 @@ export class TranscriptView extends ItemView {
    * Sets the state of the view
    * This is called when the view is loaded
    */
-  async setEphemeralState(state: { url: string }): Promise<void> {
-    // note this url may have #
+  async setEphemeralState(state: any): Promise<void> {
+    this.info = state.info;
     this.url = state.url;
+    this.lines = state.lines;
+    this.title = state.title;
+    this.duration = state.duration;
+    const timestampLines = this.plugin.settings.timestampLines;
 
-    const { lang, country, timestampLines } = this.plugin.settings;
-
-    try {
-      //Get the youtube video title and transcript at the same time
-      const data = await YoutubeTranscript.fetchTranscript(this.url, {
-        lang,
-        country,
-      });
-
-      if (!data) throw Error();
-
-      console.log("Transcripts: ", data);
-
-      this.renderVideoTitle(data.title);
-      this.renderSearchInput(this.url, data, timestampLines);
-
-      // use botton to insert instead of draging
-      // this.renderTranscriptDraggableCheckBox();
-
-      // this.renderAllTranscriptControl();
-
-      if (data.lines.length === 0) {
-        new Notice("Empty Lines");
-      } else {
-        this.renderTranscriptionBlocks(data, timestampLines, "");
-      }
-    } catch (err: unknown) {
-      new Notice("Got Error, Check Console");
-      console.log("err: ", err);
-    }
+    this.renderVideoTitle(this.title);
+    this.renderSearchInput(this.url, timestampLines);
+    this.renderTranscriptionBlocks(timestampLines, "");
   }
 
   getViewType(): string {
