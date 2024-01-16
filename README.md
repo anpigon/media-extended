@@ -1,64 +1,38 @@
-# Media Extended
+## Introduction
 
-Media(Video/Audio) Playback Enhancement for Obsidian.md
+This is a fork from [Media Extended](https://github.com/aidenlx/media-extended). 
 
-## Intro
-
-This plugin introduce some new features that enhance media (video/audio) playback: 
-
-- Player Enhancement
-  - [Speed control](https://github.com/aidenlx/media-extended/wiki/Speed-Control)
-  - [Inline options](https://github.com/aidenlx/media-extended/wiki/Inline-Options) for loop/autoplay/mute/hide controls
-  - [Embed/Link for online media](https://github.com/aidenlx/media-extended/wiki/Create-Online-Media-Embed-Link)
-  - [Caption/Subtitle support](https://github.com/aidenlx/media-extended/wiki/Caption-Subtitle-Support)
-- Notetaking
-  - [Create timestamp link/media fragment](https://github.com/aidenlx/media-extended/wiki/Restrict-Play-Range)
-  - Dedicated media view binded to document to open media links
-  - [Get timestamp from existing media file](https://github.com/aidenlx/media-extended/wiki/Get-Timestamp)
-  - [Take timestamp from audio recorder](https://github.com/aidenlx/media-extended/wiki/Audio-Recorder)
+My goal is to enchance the experience of taking notes from YouTube vides, I've attempted many plugins to achieve the functionality of inserting timestamp link and navigating video through transcripts... Then I've found `Media-Extend` and `obsidian-yt-transcript`, but they can not work together, both of the two plugins have remain unmaintained for a long time, so I decide fork the `Media-Extend` and integrate `obsidian-yt-transcript`.
 
 ## Demo
+<img width="1280" alt="Snipaste_2024-01-16_19-54-17" src="https://github.com/bfcs/media-extended/assets/52602045/359b007d-abe9-4e52-8fcb-e22f14851178">
 
-https://user-images.githubusercontent.com/31102694/118903647-c9d79780-b94a-11eb-8beb-ab507117790f.mp4
 
-https://user-images.githubusercontent.com/31102694/119340113-a3a45580-bcc4-11eb-9098-a27a16e9d6e0.mp4
+## What changes
 
-https://user-images.githubusercontent.com/31102694/118903678-dd82fe00-b94a-11eb-8ef3-7b5044a2bab8.mp4
+This changes are primarily based on my experiance using YouTube, and may not be suitable for everyone.
 
-https://user-images.githubusercontent.com/31102694/127543453-011d13b2-40e4-41e5-861e-3549d19be23f.mp4
+1. Completely unbind the video player from note editor, allowing you to open multiple video player windows simultaneously and insert video timestamps from different videos into a single note. **Note these timestamps looks the same but leed to different videos**. In the original repository, one video player is bound to one editor using a feature call `group` in Obsidian, resulting in the creation of  a new editor view each time you swtich between live view mode and reading view mode.
+2. Add support for YouTube transcripts, this feature is from another plugin [obsidian-yt-transcript](https://github.com/lstrzepek/obsidian-yt-transcript). Other types of video transcripts are not supported.
+3. Instead of using dragging, I enable text selection. This could be more useful in times when you just want to choose portion of the text. Moreover, enabling text selection also allows you to perform additional operations, such as looking up selection in the built-in dictionary on MacOS.
+4. Navigate through the video by clicking on timestamps in transcript panel.
+5. Insert a normal timestamp link into active editor using the template you've configured in settings.
+6. Insert a loop timestamp link into active editor using the template you've configured in settings.
+7. Hide/unhide a couple lines of transcrips or all transcrips. This serves as a secret weapon for language listening practice.
+8. Play the video in a loop within the time range of the chosen transcript. 
+9. Copy a single transcript or all transcripts
 
 ## How to use
 
-Go to [Media Extended Wiki](https://github.com/aidenlx/media-extended/wiki) for more details
+Download the zip file from the release page and place the uncompressed folder in the Obsidian plugin folder. 
+Note : Uninstalling the old `Media-Extend` plugin first because they are essentially the same plugin.
 
-***
+## Workaround
 
-Note: for bilibili users, [bilibili plugin](https://github.com/aidenlx/mx-bili-plugin) is required for advanced features from v2.9.0
+The original repository uses `MarkdownPostProcessor` to implement the feature of navigating videos through timestamps, so timestamp link could only work in reading view, otherwise it will open the default browser to open the timestamp link. There is workaround, put the timestamp link inside a component that will be rendered in live view, like callout.
+      <img width="713" alt="image" src="https://github.com/bfcs/media-extended/assets/52602045/a62a3c5e-0de5-4631-ac19-3078462f12f0">
 
-注意：v2.9.0开始，bilibili用户需要安装[bilibili plugin](https://github.com/aidenlx/mx-bili-plugin)以启用`高级bilibili功能`
+## Future
+The `Media-Extend` plugin v3 is under developement and Obsidian API version in the current version is too old. Therefore, putting much effort into it may not be worthwhile. However, if you have any issues, feel free to submit them.
 
-## Compatibility
-
-The required API feature is only available for Obsidian v0.12.2+.
-
-## Installation
-
-### From Obsidian
-
-1. Open `Settings` > `Third-party plugin`
-2. Make sure Safe mode is **off**
-3. Click `Browse community plugins`
-4. Search for this plugin
-5. Click `Install`
-6. Once installed, close the community plugins window and the patch is ready to use.
-
-### From GitHub
-
-1. Download the Latest Release from the Releases section of the GitHub Repository
-2. Put files to your vault's plugins folder: `<vault>/.obsidian/plugins/media-extended`
-3. Reload Obsidian
-4. If prompted about Safe Mode, you can disable safe mode and enable the plugin.
-   Otherwise, head to Settings, third-party plugins, make sure safe mode is off and
-   enable the plugin from there.
-
-> Note: The `.obsidian` folder may be hidden. On macOS, you should be able to press `Command+Shift+Dot` to show the folder in Finder.
+Star or watch the fork to reveice further updates.
