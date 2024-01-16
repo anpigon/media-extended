@@ -24,7 +24,7 @@ This changes are primarily based on my experiance using YouTube, and may not be 
 
 ## How to use
 
-Download the zip file from the release page and place the uncompressed folder in the Obsidian plugin folder. 
+Download the zip file from the release page and place the uncompressed folder in the Obsidian plugin folder.   
 Note : Uninstalling the old `Media-Extend` plugin first because they are essentially the same plugin.
 
 ## Workaround
