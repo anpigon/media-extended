@@ -159,6 +159,21 @@ export default class MediaExtended extends Plugin {
     });
 
     this.addCommand({
+      id: "toggle-video-status",
+      name: "Toggle Video Status",
+      callback: () => {
+        if (
+          !(MEDIA_VIEW_TYPE === this.currentMediaPlayerLeaf?.view.getViewType())
+        ) {
+          new Notice("No active media player, click the blank space of media");
+          return;
+        }
+        const mediaView = this.currentMediaPlayerLeaf?.view as MediaView;
+        mediaView.player?.togglePlay();
+      },
+    });
+
+    this.addCommand({
       id: "open-media-link",
       name: "Open Media from Link",
       callback: () => {

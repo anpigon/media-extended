@@ -22,18 +22,24 @@ This changes are primarily based on my experiance using YouTube, and may not be 
 8. Play the video in a loop within the time range of the chosen transcript. 
 9. Copy a single transcript or all transcripts
 
-**Note: Before performing the insertion operation, ensure your mouse cursor is in the correct position.**
-
-## How to use
-
-Download the zip file from the release page and place the uncompressed folder in the Obsidian plugin folder.   
-Note : Uninstalling the old `Media-Extend` plugin first because they are essentially the same plugin.
-
 ## Workaround
 
 The original repository uses `MarkdownPostProcessor` to implement the feature of navigating videos through timestamps, so timestamp link could only lead to video in the reading view, otherwise it will  result in opening the default browser. There is workaround, put the timestamp link inside a component that will be rendered in live view, like callout.
 
 <img width="713" alt="image" src="https://github.com/bfcs/media-extended/assets/52602045/a62a3c5e-0de5-4631-ac19-3078462f12f0">
+
+## Warning
+
+1. Because I append many elements after each transcript, if the video is very long and transcript density is too high, it may wait for a few minutes for the transcrips to render. Increase the lines of every transcript in settings would help.
+2. Before performing the insertion operation, ensure your mouse cursor is in the correct position.
+3. There would be multiple media player windows simultaneously, before executing the commands on a specific video, you need to set the media window as active first by click on the blank space.
+
+## How to use
+
+1. Uninstall the old `Media-Extend` plugin first as they are essentially the same plugin.
+2. Download the zip file from the release page and place the uncompressed folder in the Obsidian plugin folder.   
+3. Reload Obsidian.
+4. If you still open the default browser at the beginning, switch to another note and then switch back.
 
 ## Future
 The `Media-Extend` plugin v3 is under developement and Obsidian API version in the current version is too old. Therefore, putting much effort into it may not be worthwhile. However, if you have any issues, feel free to submit them.

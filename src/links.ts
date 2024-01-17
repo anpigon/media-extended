@@ -90,13 +90,13 @@ export const getLinkProcessor = (
   plugin: MediaExtended,
   type: "internal" | "external",
 ): MarkdownPostProcessor => {
-  const selector = type === "internal" ? "a.internal-link" : "a.external-link";
+  let selector = type === "internal" ? "a.internal-link" : "a.external-link";
+  selector = selector + ", a.auto-card-link-card";
   return (secEl, ctx) => {
     secEl.querySelectorAll(selector).forEach(async (el) => {
       const anchor = el as HTMLAnchorElement;
       const info = await resolveInfo(anchor, type, plugin.app, ctx);
       if (!info) return;
-
       plugin.registerDomEvent(anchor, "click", getOpenLink(info, plugin));
     });
   };
