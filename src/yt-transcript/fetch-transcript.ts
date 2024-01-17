@@ -55,7 +55,6 @@ export class YoutubeTranscript {
         });
         const body = JSON.parse(response);
         if (body.responseContext) {
-          console.log(body);
           if (!body.actions) {
             throw new Error("Transcript is disabled on this video");
           }

@@ -44,7 +44,16 @@ export const setRatioWidth = (
 export const insertToCursor = (str: string, view: MarkdownView) => {
   const { editor, app } = view;
   const cursor = editor.getCursor("to");
-  editor.replaceRange(str, cursor, cursor);
+  editor.replaceRange(str, cursor);
+
+  const matches = str.match(/\n/g);
+  if (matches) {
+   const offset = matches.length;
+   const newCur = editor.setCursor(cursor.line + offset)
+  }
+
+  editor.focus();
+
   if (app.isMobile)
     editor.setCursor(
       editor.offsetToPos(editor.posToOffset(cursor) + str.length),
