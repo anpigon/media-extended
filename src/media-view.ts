@@ -461,8 +461,10 @@ export class MediaView extends FileView {
     const timestamp = this.getTimeStamp();
     if (!timestamp) return;
     const { timestampTemplate: template } = this.plugin.settings;
-    let content = template.replace(/{{TIMESTAMP}}/g, timestamp);
-    content = content.replace(/{{SUBTITLE}}/g, "");
+    console.log(this.player);
+    let content = template.replace(/{{TIMESTAMP}}/g, timestamp)
+      .replace(/{{SUBTITLE}}/g, "")
+      .replace(/{{TITLE}}/g, this.player.config.title);
     insertToCursor(content, view);
   };
   getTimeStamp(sourcePath?: string): string | null {

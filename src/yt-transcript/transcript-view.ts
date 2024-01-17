@@ -93,17 +93,23 @@ export class TranscriptView extends ItemView {
   }
 
   private formatContentToPaste(url: string, blocks: TranscriptBlock[]) {
-    return blocks
+    let  allTranscripts = blocks
       .map((block) => {
         const { quote, quoteTimeOffset } = block;
         const href = url + "#t=" + Math.floor(quoteTimeOffset / 1000);
-        const formattedBlock = `[${formatTimestamp(
+        let formattedBlock = `[${formatTimestamp(
           quoteTimeOffset,
         )}](${href}) ${quote}`;
 
         return formattedBlock;
       })
       .join("\n");
+
+    const template = this.plugin.settings.timestampTemplate;
+    allTranscripts = template
+      .replace(/{{TIMESTAMP}}/g, '')
+      .replace(/{{SUBTITLE}}/g, allTranscripts);
+    return allTranscripts;
   }
 
   /**
@@ -311,7 +317,8 @@ export class TranscriptView extends ItemView {
     const template = this.plugin.settings.timestampTemplate;
     const content = template
       .replace(/{{TIMESTAMP}}/g, timestamp)
-      .replace(/{{SUBTITLE}}/g, subtitle);
+      .replace(/{{SUBTITLE}}/g, subtitle)
+      .replace(/{{TITLE}}/g, this.title);
     insertToCursor(
       content,
       this.plugin.currentEditorLeaf?.view as MarkdownView,

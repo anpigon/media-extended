@@ -294,7 +294,7 @@ export class MESettingTab extends PluginSettingTab {
           descEl.appendText("The template used to insert timestamps.");
           descEl.createEl("br");
           descEl.appendText(
-            "Supported placeholders: {{TIMESTAMP}}, {{SUBTITLE}}",
+            "Supported placeholders: {{TIMESTAMP}}, {{SUBTITLE}}, {{TITLE}}",
           );
         }),
       )
