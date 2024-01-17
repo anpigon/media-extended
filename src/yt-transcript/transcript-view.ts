@@ -40,6 +40,11 @@ export class TranscriptView extends ItemView {
       new Notice("Copied");
     });
 
+    this.addAction("plus-circle", "Insert Video Title to Editor", () => {
+      const videoTitle = `\n>[!info] [${this.title}](${this.url})\n`;
+      insertToCursor(videoTitle, plugin.currentEditorLeaf.view as MarkdownView);
+    });
+
     this.addAction("view", "Toggle Transcripts View", () => {
       const transArr = this.dataContainerEl?.getElementsByTagName("span");
       this.hiden = !this.hiden;
