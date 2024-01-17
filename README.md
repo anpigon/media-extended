@@ -41,6 +41,101 @@ The original repository uses `MarkdownPostProcessor` to implement the feature of
 3. Reload Obsidian.
 4. If you still open the default browser at the beginning, switch to another note and then switch back.
 
+## Templater
+
+The template below assists in creating a note with the name corresponding to the tilte of a YouTube video, It fetch the YouTube link from your cliboard, get the video title. rename the new note with title, and then insert a link leading to the media player. Set this template as the default for a specific folder in the Templater settings. Each time you right-click on the folder and choose to create a note, the template will be applied.
+
+<img width="745" alt="image" src="https://github.com/bfcs/media-extended/assets/52602045/d58e133d-3911-45f7-b9e1-f9d6201ef119">
+
+```javascript
+
+<%* 
+const url = await tp.system.clipboard();
+
+if (!url.startsWith('https') || !url.includes('youtube')){
+	console.log('invalid youtube link: ', url)
+	return;
+}
+let title = await tp.user.get_link_title(tp);
+const regex = /[|\\\/]/g; 
+title = title.replace(regex, '-').replace(":", " -");
+// 去掉- YouTube
+title = title.slice(0, -10);
+const titleWithDate = `[${tp.date.now()}]${title}`
+
+tR += `>[!example] [${title}](${url})`;
+
+if (title.length > 200) {
+	title = await tp.system.prompt("Name is too long", title, true)
+}
+await tp.file.rename(titleWithDate);
+
+%>
+
+```
+The template uses a user function called get_link_title, do not forget to add it.
+
+```javascript
+
+
+function blank(text) {
+  return text === undefined || text === null || text === ''
+}
+
+function notBlank(text) {
+  return !blank(text)
+}
+
+async function scrape(url, requestUrl) {
+  try {
+    const response = await requestUrl(url)
+    if (!response.headers['content-type'].includes('text/html')) return getUrlFinalSegment(url)
+    const html = response.text
+
+    const doc = new DOMParser().parseFromString(html, 'text/html')
+    const title = doc.querySelector('title')
+
+    if (blank(title?.innerText)) {
+      // If site is javascript based and has a no-title attribute when unloaded, use it.
+      var noTitle = title?.getAttr('no-title')
+      if (notBlank(noTitle)) {
+        return noTitle
+      }
+
+      // Otherwise if the site has no title/requires javascript simply return Title Unknown
+      return url
+    }
+
+    return title.innerText
+  } catch (ex) {
+    console.error(ex)
+    return 'Site Unreachable'
+  }
+}
+
+function getUrlFinalSegment(url) {
+  try {
+    const segments = new URL(url).pathname.split('/')
+    const last = segments.pop() || segments.pop() // Handle potential trailing slash
+    return last
+  } catch (_) {
+    return 'File'
+  }
+}
+
+async function getPageTitle(tp) {
+  let url = await tp.system.clipboard();
+  if (!(url.startsWith('http') || url.startsWith('https'))) {
+    console.log('invalid link: ', url)
+    return ;
+  }
+  return scrape(url, tp.obsidian.requestUrl)
+}
+
+module.exports = getPageTitle;
+```
+
+
 ## Future
 The `Media-Extend` plugin v3 is under developement and Obsidian API version in the current version is too old. Therefore, putting much effort into it may not be worthwhile. However, if you have any issues, feel free to submit them.
 
