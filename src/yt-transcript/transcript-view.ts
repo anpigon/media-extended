@@ -314,7 +314,7 @@ export class TranscriptView extends ItemView {
   }
 
   private addTransToDoc = (timestamp: string, subtitle: string) => {
-    subtitle = subtitle.replace('\n', '');
+    subtitle = subtitle.replace('\n', ' ');
     const template = this.plugin.settings.timestampTemplate;
     const content = template
       .replace(/{{TIMESTAMP}}/g, timestamp)
