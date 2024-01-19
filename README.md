@@ -61,7 +61,7 @@ const regex = /[|\\\/]/g;
 title = title.replace(regex, '-').replace(":", " -");
 // 去掉- YouTube
 title = title.slice(0, -10);
-const titleWithDate = `[${tp.date.now()}]${title}`
+const titleWithDate = `<${tp.date.now()}>${title}`
 
 tR += `>[!example] [${title}](${url})`;
 
