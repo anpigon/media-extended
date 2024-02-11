@@ -11,15 +11,16 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
 
     - name: Set up Node.js
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v4
       with:
-        node-version: 14
+        node-version-file: ".nvmrc"
+        cache: "npm"
 
     - name: Install dependencies
-      run: npm install
+      run: npm ci
 
     - name: Build
       run: npm run build
@@ -36,4 +37,8 @@ jobs:
       uses: softprops/action-gh-release@v1
       with:
         tag_name: ${{ steps.timestamp.outputs.timestamp }}
-        files: ${{ steps.timestamp.outputs.timestamp }}.zip
+        files: | 
+          ${{ steps.timestamp.outputs.timestamp }}.zip
+          main.js
+          styles.css
+          manifest.json
